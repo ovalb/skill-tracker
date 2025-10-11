@@ -3,7 +3,6 @@ package com.ovalb.skill_tracker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +26,8 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     widgets: List<TrackedWidget>,
     onAddWidget: () -> Unit,
-    onUpdateWidget: (TrackedWidget, String) -> Unit,
+    onUpdateWidget: (TrackedWidget) -> Unit,
+    onOpenDetails: (TrackedWidget) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -55,6 +55,7 @@ fun HomeScreen(
             WidgetList(
                 widgets = widgets,
                 onUpdateWidget = onUpdateWidget,
+                onOpenDetails = onOpenDetails,
             )
         }
 
@@ -101,9 +102,10 @@ private fun EmptyState(onAddWidget: () -> Unit) {
 }
 
 @Composable
-private fun ColumnScope.WidgetList(
+private fun WidgetList(
     widgets: List<TrackedWidget>,
-    onUpdateWidget: (TrackedWidget, String) -> Unit,
+    onUpdateWidget: (TrackedWidget) -> Unit,
+    onOpenDetails: (TrackedWidget) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -112,7 +114,11 @@ private fun ColumnScope.WidgetList(
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         items(widgets, key = { it.id }) { widget ->
-            WidgetCard(widget = widget, onUpdate = onUpdateWidget)
+            WidgetCard(
+                widget = widget,
+                onUpdate = onUpdateWidget,
+                onOpenDetails = onOpenDetails,
+            )
         }
     }
 }
@@ -120,20 +126,23 @@ private fun ColumnScope.WidgetList(
 @Composable
 private fun WidgetCard(
     widget: TrackedWidget,
-    onUpdate: (TrackedWidget, String) -> Unit,
+    onUpdate: (TrackedWidget) -> Unit,
+    onOpenDetails: (TrackedWidget) -> Unit,
 ) {
-    when (widget.template.kind) {
-        WidgetKind.Weight -> WeightWidgetCard(
+    when (val state = widget.state) {
+        is WidgetState.Weight -> WeightWidgetCard(
             widget = widget,
-            onTrack = { newValue -> onUpdate(widget, newValue) },
+            state = state,
+            onTrack = onUpdate,
+            onOpenDetails = { onOpenDetails(widget) },
         )
 
-        WidgetKind.Numeric, WidgetKind.Text -> GenericWidgetCard(widget)
+        is WidgetState.Simple -> GenericWidgetCard(widget, state)
     }
 }
 
 @Composable
-private fun GenericWidgetCard(widget: TrackedWidget) {
+private fun GenericWidgetCard(widget: TrackedWidget, state: WidgetState.Simple) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -167,7 +176,7 @@ private fun GenericWidgetCard(widget: TrackedWidget) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = if (widget.value.isBlank()) "Not tracked yet" else widget.value,
+                text = state.value.ifBlank { "Not tracked yet" },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )

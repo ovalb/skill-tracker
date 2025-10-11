@@ -39,23 +39,36 @@ fun AppRoot() {
         }
 
         val handleAddWidget: (WidgetTemplate) -> Unit = { template ->
-            trackedWidgets += TrackedWidget(
+            val widget = TrackedWidget(
                 id = "instance-${template.id}-${widgetIdCounter++}",
                 template = template,
-                value = "",
+                state = when (template.kind) {
+                    WidgetKind.Weight -> WidgetState.Weight(
+                        heightCm = null,
+                        entries = emptyList(),
+                    )
+
+                    WidgetKind.Numeric -> WidgetState.Simple(value = "")
+                    WidgetKind.Text -> WidgetState.Simple(value = "")
+                }
             )
+            trackedWidgets += widget
             scope.launch {
                 sheetState.hide()
                 pickerOpen = false
             }
         }
 
-        val handleUpdateWidget: (TrackedWidget, String) -> Unit = { widget, newValue ->
-            val index = trackedWidgets.indexOfFirst { it.id == widget.id }
+        val handleUpdateWidget: (TrackedWidget) -> Unit = { updated ->
+            val index = trackedWidgets.indexOfFirst { it.id == updated.id }
             if (index >= 0) {
-                trackedWidgets[index] = trackedWidgets[index].copy(value = newValue)
+                trackedWidgets[index] = updated
             }
         }
+
+        var detailWidgetId by remember { mutableStateOf<String?>(null) }
+
+        val openDetail: (TrackedWidget) -> Unit = { detailWidgetId = it.id }
 
         Box(modifier = Modifier.fillMaxSize()) {
             val contentModifier = if (pickerOpen) {
@@ -72,6 +85,7 @@ fun AppRoot() {
                     widgets = trackedWidgets,
                     onAddWidget = { pickerOpen = true },
                     onUpdateWidget = handleUpdateWidget,
+                    onOpenDetails = openDetail,
                 )
             }
 
@@ -97,6 +111,29 @@ fun AppRoot() {
                         templates = WidgetCatalog.templates,
                         onSelect = handleAddWidget,
                     )
+                }
+            }
+
+            detailWidgetId?.let { id ->
+                val widget = trackedWidgets.firstOrNull { it.id == id }
+                if (widget == null) {
+                    detailWidgetId = null
+                } else {
+                    if (widget.template.kind is WidgetKind.Weight) {
+                        val weightState = widget.state as? WidgetState.Weight
+                        if (weightState == null) {
+                            detailWidgetId = null
+                        } else {
+                            WeightDetailsScreen(
+                                widget = widget,
+                                state = weightState,
+                                onUpdate = handleUpdateWidget,
+                                onClose = { detailWidgetId = null },
+                            )
+                        }
+                    } else {
+                        detailWidgetId = null
+                    }
                 }
             }
         }
@@ -127,7 +164,21 @@ data class WidgetTemplate(
 data class TrackedWidget(
     val id: String,
     val template: WidgetTemplate,
-    val value: String,
+    val state: WidgetState,
+)
+
+sealed interface WidgetState {
+    data class Weight(
+        val heightCm: Double?,
+        val entries: List<WeightEntry>,
+    ) : WidgetState
+
+    data class Simple(val value: String) : WidgetState
+}
+
+data class WeightEntry(
+    val dateLabel: String,
+    val kilograms: Double,
 )
 
 object WidgetCatalog {
