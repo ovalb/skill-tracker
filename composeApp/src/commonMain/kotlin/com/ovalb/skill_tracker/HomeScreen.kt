@@ -33,19 +33,13 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 64.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
             text = "Skill tracker",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Stay consistent by focusing on the widgets you care about",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -59,7 +53,8 @@ fun HomeScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.weight(1f, fill = true))
+
         Button(
             onClick = onAddWidget,
             modifier = Modifier.fillMaxWidth(),

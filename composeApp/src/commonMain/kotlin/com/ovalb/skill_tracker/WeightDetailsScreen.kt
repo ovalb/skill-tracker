@@ -165,7 +165,7 @@ private fun RowScope.SummaryCell(title: String, value: String) {
 
 @Composable
 private fun WeightHistoryChart(entries: List<WeightEntry>) {
-    val padded = if (entries.isEmpty()) mockEntries else entries
+    val padded = entries.ifEmpty { mockEntries }
     val values = padded.map { it.kilograms }
     val minValue = min(values.minOrNull() ?: 0.0, values.maxOrNull() ?: 0.0) - 1
     val maxValue = max(values.maxOrNull() ?: 0.0, values.minOrNull() ?: 0.0) + 1
